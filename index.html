@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Timetable">
+<meta name="theme-color" content="#fafafa" id="theme-color-meta">
+<title>Timetable</title>
+<style>
+/* ═══════════ CSS VARIABLES ═══════════ */
+:root {
+  --bg:#fafafa; --sur:#fff; --sur2:#f0f0f0; --brd:#e0e0e0;
+  --acc:#222; --acc2:#555; --txt:#111; --mut:#888;
+  --red:#e53935; --grn:#43a047; --yel:#f9a825; --ora:#fb923c;
+}
+/* Themes */
+.th-minimal {--bg:#fafafa;--sur:#ffffff;--sur2:#f0f0f0;--brd:#e0e0e0;--acc:#222222;--acc2:#555555;--txt:#111111;--mut:#888888}
+.th-slate   {--bg:#f0f2f5;--sur:#ffffff;--sur2:#e4e8ee;--brd:#cdd3dc;--acc:#4f5ee8;--acc2:#7b89f0;--txt:#1a1d2e;--mut:#6b7280}
+.th-pearl   {--bg:#faf8f5;--sur:#ffffff;--sur2:#f2ede8;--brd:#e8ddd4;--acc:#b07a5a;--acc2:#c9967a;--txt:#2a1f1a;--mut:#9a8880}
+.th-fog     {--bg:#f2f4f7;--sur:#ffffff;--sur2:#e6eaf0;--brd:#cdd4e0;--acc:#4a6a8a;--acc2:#6a8aaa;--txt:#1a2535;--mut:#7a8898}
+.th-ivory   {--bg:#fdfbf5;--sur:#fffef9;--sur2:#f5f0e4;--brd:#e8e0cc;--acc:#a07840;--acc2:#c09858;--txt:#2a2010;--mut:#9a8868}
+.th-obsidian{--bg:#0a0a0f;--sur:#12121a;--sur2:#1a1a25;--brd:#252535;--acc:#3d9cf0;--acc2:#6ab8f7;--txt:#e8eaf0;--mut:#7a8098}
+.th-charcoal{--bg:#1e2028;--sur:#262830;--sur2:#2e3038;--brd:#383a45;--acc:#4ecba8;--acc2:#72dbbe;--txt:#dde0e8;--mut:#8890a0}
+.th-midnite {--bg:#0f1225;--sur:#161a35;--sur2:#1e2240;--brd:#2a2f55;--acc:#9b7fe8;--acc2:#b89df0;--txt:#e0e2f0;--mut:#8085b0}
+.th-ash     {--bg:#141a24;--sur:#1c2430;--sur2:#242e3c;--brd:#2e3c50;--acc:#7ab8d8;--acc2:#a0d0e8;--txt:#e0eaf4;--mut:#7090a8}
+.th-onyx    {--bg:#080808;--sur:#111111;--sur2:#1a1a1a;--brd:#222222;--acc:#e82020;--acc2:#f55050;--txt:#f0f0f0;--mut:#808080}
+
+/* ═══════════ GLOBAL RESET ═══════════ */
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+html { height: 100%; background: var(--bg); }
+body {
+  background: var(--bg); color: var(--txt); font-family: -apple-system, sans-serif;
+  display: flex; flex-direction: column; height: 100vh; overflow: hidden;
+  padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+}
+
+/* ═══════════ COMPONENTS ═══════════ */
+.hdr { background: var(--sur); border-bottom: 1px solid var(--brd); padding: 12px 16px; display: flex; align-items: center; justify-content: space-between; }
+.hdr-title { font-size: 17px; font-weight: 700; color: var(--acc); }
+.hdr-btn { background: var(--sur2); border: 1px solid var(--brd); padding: 8px 12px; border-radius: 8px; font-size: 12px; font-weight: 600; cursor: pointer; }
+
+.nav { display: flex; background: var(--sur); border-bottom: 1px solid var(--brd); }
+.nav-tab { flex: 1; padding: 12px; text-align: center; font-size: 12px; color: var(--mut); cursor: pointer; border-bottom: 2px solid transparent; }
+.nav-tab.on { color: var(--acc); border-bottom-color: var(--acc); }
+
+.view { flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; display: none; }
+.view.active { display: block; }
+#vcal { display: none; flex-direction: column; flex: 1; overflow: hidden; }
+#vcal.active { display: flex; }
+
+/* Calendar Grid */
+.banners { padding: 4px 10px; display: flex; flex-wrap: wrap; gap: 4px; }
+.chip { font-size: 10px; padding: 2px 8px; border-radius: 12px; font-weight: 600; }
+.chip-q { background: rgba(var(--acc-rgb),.15); color: var(--acc); }
+.chip-s { background: rgba(var(--acc-rgb),.1); color: var(--acc); }
+.chip-h { background: rgba(var(--acc2-rgb),.15); color: var(--acc2); }
+
+.wnav-lbl { font-size: 13px; color: var(--mut); font-weight: 600; text-align: center; padding: 4px 0; }
+.day-toggles { display: flex; gap: 4px; padding: 0 10px 4px; }
+.dtgl { font-size: 10px; padding: 3px 8px; border-radius: 12px; border: 1px solid var(--brd); cursor: pointer; background: var(--sur2); color: var(--mut); }
+.dtgl.on { background: var(--acc); color: #fff; border-color: var(--acc); }
+
+.cal-outer { flex: 1; overflow: hidden; padding: 4px 8px; }
+.cal { display: grid; gap: 3px; height: 100%; }
+.cal-hd { display: flex; flex-direction: column; align-items: center; justify-content: center; }
+.cal-hd-day { font-size: 10px; font-weight: 700; color: var(--mut); }
+.cal-hd-date { font-size: 14px; font-weight: 700; width: 26px; height: 26px; display: flex; align-items: center; justify-content: center; border-radius: 50%; }
+.cal-hd-date.today { background: var(--acc); color: #fff; }
+
+.tcol { display: flex; flex-direction: column; align-items: flex-end; padding-top: 4px; }
+.tcol-p { font-weight: 700; font-size: 10px; }
+.tcol-t { font-size: 8px; color: var(--mut); text-align: right; white-space: pre; }
+
+.cell { background: var(--sur); border: 1px solid var(--brd); border-radius: 6px; position: relative; cursor: pointer; overflow: hidden; }
+.cblk { position: absolute; inset: 2px; border-radius: 4px; padding: 3px; display: flex; flex-direction: column; }
+.cblk-name { font-size: 10px; font-weight: 700; line-height: 1.2; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+.cblk-room { font-size: 9px; opacity: 0.8; margin-top: auto; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.cblk-dot { position: absolute; top: 2px; right: 2px; width: 6px; height: 6px; border-radius: 50%; background: var(--yel); }
+
+/* Color Classes (Dynamic) */
+.c0{background:rgba(124,106,247,.2);border-left:3px solid #7c6af7}
+.c1{background:rgba(94,234,212,.15);border-left:3px solid #5eead4}
+.c2{background:rgba(251,191,36,.15);border-left:3px solid #fbbf24}
+.c3{background:rgba(248,113,113,.15);border-left:3px solid #f87171}
+.c4{background:rgba(74,222,128,.15);border-left:3px solid #4ade80}
+.c5{background:rgba(251,146,60,.15);border-left:3px solid #fb923c}
+.c6{background:rgba(232,121,249,.15);border-left:3px solid #e879f9}
+.c7{background:rgba(56,189,248,.15);border-left:3px solid #38bdf8}
+
+.memo-blk { position: absolute; inset: 2px; background: rgba(249,168,37,.1); border-left: 3px solid var(--yel); border-radius: 4px; padding: 3px; font-size: 9px; color: var(--yel); overflow: hidden; }
+
+/* List Styles */
+.alist { padding: 10px; display: flex; flex-direction: column; gap: 8px; }
+.aitem { background: var(--sur); border: 1px solid var(--brd); border-radius: 12px; padding: 12px; display: flex; gap: 12px; cursor: pointer; }
+.achk { width: 20px; height: 20px; border-radius: 50%; border: 2px solid var(--brd); flex-shrink: 0; display: flex; align-items: center; justify-content: center; }
+.achk.done { background: var(--grn); border-color: var(--grn); }
+.achk.done::after { content: '✓'; color: #fff; font-size: 10px; font-weight: 800; }
+.ainfo { flex: 1; min-width: 0; }
+.aname { font-size: 14px; font-weight: 600; }
+.aname.done { text-decoration: line-through; opacity: 0.5; }
+.ameta { font-size: 11px; color: var(--mut); margin-top: 2px; }
+.adue { font-size: 10px; padding: 2px 8px; border-radius: 10px; display: inline-block; margin-top: 4px; }
+.due-ov { background: rgba(229,57,53,.1); color: var(--red); }
+.due-td { background: rgba(249,168,37,.15); color: var(--yel); }
+.due-sn { background: rgba(251,146,60,.1); color: var(--ora); }
+.due-ok { background: rgba(67,160,71,.1); color: var(--grn); }
+
+/* Settings */
+.slist { padding: 10px; display: flex; flex-direction: column; gap: 12px; }
+.ssec { background: var(--sur); border: 1px solid var(--brd); border-radius: 12px; overflow: hidden; }
+.ssec-hdr { padding: 12px 14px; font-size: 13px; font-weight: 700; border-bottom: 1px solid var(--brd); display: flex; justify-content: space-between; align-items: center; }
+.srow { padding: 10px 14px; border-bottom: 1px solid var(--brd); display: flex; align-items: center; cursor: pointer; }
+.srow:last-child { border-bottom: none; }
+.srow-name { font-size: 13px; font-weight: 600; }
+.srow-sub { font-size: 11px; color: var(--mut); }
+
+/* Modals */
+.ov { position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 100; display: none; align-items: flex-end; justify-content: center; padding-bottom: env(safe-area-inset-bottom); }
+.ov.mid { align-items: center; padding: 20px; }
+.modal { background: var(--sur); border-radius: 20px 20px 0 0; width: 100%; max-width: 500px; padding: 20px; max-height: 90vh; overflow-y: auto; }
+.ov.mid .modal { border-radius: 20px; }
+.drag { width: 40px; height: 4px; background: var(--brd); border-radius: 2px; margin: -10px auto 15px; }
+
+/* Forms */
+.fg { margin-bottom: 12px; }
+.fg label { display: block; font-size: 11px; color: var(--mut); margin-bottom: 4px; font-weight: 600; }
+.fg input, .fg select, .fg textarea { width: 100%; padding: 10px; border-radius: 8px; border: 1px solid var(--brd); background: var(--sur2); color: var(--txt); font-family: inherit; font-size: 14px; }
+.btn-row { display: flex; gap: 8px; margin-top: 16px; }
+.btn { flex: 1; padding: 12px; border-radius: 10px; border: none; font-weight: 600; cursor: pointer; font-size: 14px; }
+.btn-p { background: var(--acc); color: #fff; }
+.btn-s { background: var(--sur2); color: var(--txt); border: 1px solid var(--brd); }
+.btn-d { background: var(--red); color: #fff; width: 100%; margin-top: 8px; }
+
+/* Theme Grid */
+.tgrid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; padding: 12px; }
+.tswatch { height: 32px; border-radius: 8px; border: 2px solid transparent; cursor: pointer; }
+.tswatch.on { border-color: var(--txt); }
+</style>
+</head>
+<body>
+
+<!-- Header -->
+<div class="hdr">
+  <span class="hdr-title">Timetable</span>
+  <button class="hdr-btn" id="btn-add-assign">+ 課題</button>
+</div>
+
+<!-- Tabs -->
+<div class="nav">
+  <div class="nav-tab on" data-target="vcal">カレンダー</div>
+  <div class="nav-tab" data-target="vassign">課題</div>
+  <div class="nav-tab" data-target="vsettings">設定</div>
+</div>
+
+<!-- Calendar View -->
+<div id="vcal" class="view active">
+  <div style="display:flex; align-items:center; padding: 4px 10px;">
+    <div id="banners" class="banners"></div>
+    <div id="day-toggles" class="day-toggles" style="margin-left:auto"></div>
+  </div>
+  <div class="wnav-lbl" id="wlbl"></div>
+  <div class="cal-outer" id="cal-outer">
+    <div class="cal" id="cal-grid"></div>
+  </div>
+</div>
+
+<!-- Assignment View -->
+<div id="vassign" class="view">
+  <div id="assign-list" class="alist"></div>
+</div>
+
+<!-- Settings View -->
+<div id="vsettings" class="view">
+  <div class="slist">
+    <div class="ssec">
+      <div class="ssec-hdr">授業一覧</div>
+      <div id="classes-list"></div>
+    </div>
+    <div class="ssec">
+      <div class="ssec-hdr">テーマ</div>
+      <div class="tgrid" id="theme-grid"></div>
+    </div>
+    <div class="ssec">
+      <div class="ssec-hdr">週末の表示</div>
+      <div id="weekend-toggles"></div>
+    </div>
+    <div class="ssec">
+      <div class="ssec-hdr">学期・休暇 <button class="hdr-btn" onclick="openPeriod()">+ 追加</button></div>
+      <div id="period-list"></div>
+    </div>
+    <div class="ssec">
+      <div class="ssec-hdr">クォーター <button class="hdr-btn" onclick="openQuarter()">+ 追加</button></div>
+      <div id="quarter-list"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════ MODALS ═══════════ -->
+
+<!-- Class Form Modal -->
+<div class="ov mid" id="m-class">
+  <div class="modal">
+    <div class="drag"></div>
+    <h2 id="mclass-title" style="font-size:17px; margin-bottom:15px;">授業を追加</h2>
+    <div class="fg"><label>授業名 *</label><input id="fc-name" type="text"></div>
+    <div class="fg"><label>クォーター</label><div id="fc-quarters" style="display:flex; flex-direction:column; gap:4px;"></div></div>
+    <div class="frow" style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">
+      <div class="fg" id="fc-day-wrap"><label>曜日</label><select id="fc-day"></select></div>
+      <div class="fg"><label>時限</label><select id="fc-period"></select></div>
+    </div>
+    <div class="fg"><label>教室</label><input id="fc-room" type="text"></div>
+    <div class="fg"><label>色</label><div id="color-row" style="display:flex; gap:6px;"></div></div>
+    <div class="btn-row">
+      <button class="btn btn-s" onclick="hideModal('m-class')">キャンセル</button>
+      <button class="btn btn-p" id="fc-save">保存</button>
+    </div>
+    <button class="btn btn-d" id="fc-delete" style="display:none">削除</button>
+  </div>
+</div>
+
+<!-- Detail Modal -->
+<div class="ov" id="m-detail">
+  <div class="modal"><div class="drag"></div><div id="detail-body"></div></div>
+</div>
+
+<!-- Bottom Sheet (Quick Action) -->
+<div class="ov" id="cell-sheet">
+  <div class="modal" style="border-radius:20px 20px 0 0; padding-bottom:30px;">
+    <div class="drag"></div>
+    <div id="cs-title" style="text-align:center; color:var(--mut); font-size:12px; margin-bottom:10px;"></div>
+    <button class="btn btn-p" id="cs-class-btn" style="width:100%; margin-bottom:8px;">授業を追加</button>
+    <button class="btn btn-s" id="cs-memo-btn" style="width:100%; margin-bottom:8px;">メモを追加</button>
+    <button class="btn btn-s" onclick="hideModal('cell-sheet')" style="width:100%; border:none; background:none; color:var(--mut);">キャンセル</button>
+  </div>
+</div>
+
+<script>
+'use strict';
+
+// ═══════════ DATA & CONSTANTS ═══════════
+const DB_KEY = 'tt_v10';
+const DAYS = ['月','火','水','木','金','土','日'];
+const PERIODS = ['1限','2限','3限','4限','5限'];
+const TIMES = ['8:30-10:00','10:20-11:50','12:40-14:10','14:30-16:00','16:20-17:50'];
+const COLORS = ['#7c6af7','#5eead4','#fbbf24','#f87171','#4ade80','#fb923c','#e879f9','#38bdf8'];
+
+let D = {
+  classes:[], assignments:[], quarters:[], periods:[], events:[], memos:[], scheds:[],
+  theme:'minimal', showSat:true, showSun:false, weekOverrides:{}
+};
+
+// ═══════════ UTILS ═══════════
+const $ = id => document.getElementById(id);
+const uid = () => Date.now().toString(36) + Math.random().toString(36).substr(2, 4);
+const dstr = d => d.toISOString().split('T')[0];
+const dparse = s => new Date(s + 'T00:00:00');
+const dbSave = () => localStorage.setItem(DB_KEY, JSON.stringify(D));
+
+// ═══════════ CORE LOGIC ═══════════
+let weekOffset = 0;
+
+function getMonday(off) {
+  const d = new Date(); d.setHours(0,0,0,0);
+  const day = d.getDay();
+  const diff = (day === 0 ? -6 : 1) - day;
+  d.setDate(d.getDate() + diff + (off * 7));
+  return d;
+}
+
+function renderCal() {
+  const mon = getMonday(weekOffset);
+  const wk = dstr(mon);
+  const grid = $('cal-grid');
+  grid.innerHTML = '';
+
+  // Setup grid columns based on visibility
+  const o = D.weekOverrides[wk] || {};
+  const sat = o.sat ?? D.showSat;
+  const sun = o.sun ?? D.showSun;
+  const activeDays = [0,1,2,3,4];
+  if(sat) activeDays.push(5);
+  if(sun) activeDays.push(6);
+
+  $('wlbl').textContent = `${mon.getMonth()+1}/${mon.getDate()} 〜`;
+  
+  grid.style.gridTemplateColumns = `40px repeat(${activeDays.length}, 1fr)`;
+  grid.style.gridTemplateRows = `40px repeat(5, 1fr)`;
+
+  // Header Row
+  grid.appendChild(document.createElement('div'));
+  activeDays.forEach(i => {
+    const d = new Date(mon); d.setDate(mon.getDate() + i);
+    const h = document.createElement('div');
+    h.className = 'cal-hd';
+    const isToday = dstr(d) === dstr(new Date());
+    h.innerHTML = `<div class="cal-hd-day">${DAYS[i]}</div><div class="cal-hd-date ${isToday?'today':''}">${d.getDate()}</div>`;
+    grid.appendChild(h);
+  });
+
+  // Time Rows
+  for(let p=0; p<5; p++) {
+    const t = document.createElement('div');
+    t.className = 'tcol';
+    t.innerHTML = `<div class="tcol-p">${p+1}</div><div class="tcol-t">${TIMES[p].replace('-','\n')}</div>`;
+    grid.appendChild(t);
+
+    activeDays.forEach(di => {
+      const ds = dstr(new Date(mon.getTime() + di*86400000));
+      const cell = document.createElement('div');
+      cell.className = 'cell';
+      
+      // Logic for classes/memos
+      const cls = D.classes.find(c => c.day === di && c.period === p);
+      if(cls) {
+        const b = document.createElement('div');
+        b.className = `cblk c${cls.colorIdx || 0}`;
+        b.innerHTML = `<div class="cblk-name">${cls.name}</div><div class="cblk-room">${cls.room || ''}</div>`;
+        cell.appendChild(b);
+        cell.onclick = () => openDetail(cls.id);
+      } else {
+        cell.onclick = () => openQuickAdd(di, p, ds, wk);
+      }
+      grid.appendChild(cell);
+    });
+  }
+}
+
+// ═══════════ MODAL CONTROL ═══════════
+function showModal(id) { $(id).style.display = 'flex'; }
+function hideModal(id) { $(id).style.display = 'none'; }
+
+function openQuickAdd(d, p, ds, wk) {
+  $('cs-title').textContent = `${DAYS[d]}曜 ${p+1}限`;
+  $('cs-class-btn').onclick = () => { hideModal('cell-sheet'); openClassForm(d, p); };
+  showModal('cell-sheet');
+}
+
+function openClassForm(d, p) {
+  $('fc-name').value = '';
+  $('fc-day').innerHTML = DAYS.map((day,i)=>`<option value="${i}" ${i===d?'selected':''}>${day}</option>`).join('');
+  $('fc-period').innerHTML = PERIODS.map((per,i)=>`<option value="${per}" ${i===p?'selected':''}>${per}</option>`).join('');
+  
+  $('fc-save').onclick = () => {
+    const name = $('fc-name').value;
+    if(!name) return alert('授業名を入力してください');
+    D.classes.push({
+      id: uid(), name, day: +$('fc-day').value, period: $('fc-period').selectedIndex,
+      room: $('fc-room').value, colorIdx: 0
+    });
+    dbSave(); hideModal('m-class'); renderCal();
+  };
+  showModal('m-class');
+}
+
+function openDetail(id) {
+  const cls = D.classes.find(c => c.id === id);
+  const body = $('detail-body');
+  body.innerHTML = `
+    <h2 style="margin-bottom:10px">${cls.name}</h2>
+    <div class="fg"><label>場所</label><div>${cls.room || '未設定'}</div></div>
+    <div class="btn-row">
+      <button class="btn btn-s" onclick="hideModal('m-detail')">閉じる</button>
+      <button class="btn btn-p" onclick="deleteClass('${id}')">削除</button>
+    </div>
+  `;
+  showModal('m-detail');
+}
+
+window.deleteClass = (id) => {
+  if(!confirm('削除しますか？')) return;
+  D.classes = D.classes.filter(c => c.id !== id);
+  dbSave(); hideModal('m-detail'); renderCal();
+};
+
+// ═══════════ INIT ═══════════
+document.addEventListener('DOMContentLoaded', () => {
+  const saved = localStorage.getItem(DB_KEY);
+  if(saved) D = JSON.parse(saved);
+
+  // Tab events
+  document.querySelectorAll('.nav-tab').forEach(tab => {
+    tab.onclick = () => {
+      document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('on'));
+      document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+      tab.classList.add('on');
+      $(tab.dataset.target).classList.add('active');
+    };
+  });
+
+  // Swipe support
+  let touchStart = 0;
+  $('vcal').ontouchstart = e => touchStart = e.touches[0].clientX;
+  $('vcal').ontouchend = e => {
+    const diff = e.changedTouches[0].clientX - touchStart;
+    if(Math.abs(diff) > 50) {
+      weekOffset += diff > 0 ? -1 : 1;
+      renderCal();
+    }
+  };
+
+  renderCal();
+});
+</script>
+</body>
+</html>
